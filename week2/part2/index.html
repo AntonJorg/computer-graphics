@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script type="text/javascript" src="../../common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../../common/initShaders.js"></script>
+    <script type="text/javascript" src="../../common/MV.js"></script>
+
+    <script type="text/javascript" src="source.js"></script>
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute vec4 a_Color;
+        varying vec4 v_Color;
+        void main() {
+            gl_Position = a_Position;
+            v_Color = a_Color;
+        }
+        </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec4 v_Color;
+        void main() {
+            gl_FragColor = v_Color;
+        }
+    </script>
+</head>
+
+<body>
+    <canvas id="canvas" width="512" height="512">HTML5 Canvas not supported!</canvas>
+    <div>
+        <select id="colorSelect" size="8">
+            <option selected>Black</option>
+            <option>Red</option>
+            <option>Yellow</option>
+            <option>Green</option>
+            <option>Blue</option>
+            <option>Magenta</option>
+            <option>Cyan</option>
+            <option>Cornflower</option>
+        </select>
+    </div>
+    <div>
+    <select id="clearColorSelect">
+        <option>Black</option>
+        <option>Red</option>
+        <option>Yellow</option>
+        <option>Green</option>
+        <option>Blue</option>
+        <option>Magenta</option>
+        <option>Cyan</option>
+        <option selected>Cornflower</option>
+    </select><br/>
+    <button id="clearButton">Clear canvas</button>
+    </div>
+</body>
+
+</html>
