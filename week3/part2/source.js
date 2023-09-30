@@ -6,6 +6,8 @@ var vBuffer;
 var cBuffer;
 var iBuffer;
 
+var instancedArrays;
+
 var Mloc;
 
 const vertices = [
@@ -73,8 +75,8 @@ window.onload = function init() {
     }
 
     // enable instanced rendering
-    var ext = gl.getExtension('ANGLE_instanced_arrays');
-    if (!ext) {
+    instancedArrays = gl.getExtension('ANGLE_instanced_arrays');
+    if (!instancedArrays) {
         console.log('Warning: Unable to use an extension');
     }
 
