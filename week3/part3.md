@@ -9,3 +9,6 @@ The only matrix not equal to I was therefore V, which i set to
 $$V = \text{lookat}([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0])$$
 
 lookAt(vec3(0.5, 0.5, 0.5), vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0))
+
+
+TODO
