@@ -26,12 +26,12 @@ const indices = new Uint32Array([
 ]);
 const numInstances = 1;
 
-const P = perspective(45, 1, 0, 50);
+const P = perspective(45, 1, 1, 50);
 const V = lookAt(vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0));
 
 const M = new Float32Array([
     ...flatten(translate(0.0, 0.0, -5.0)),
-])
+]);
 
 
 function sphere(initialTetrahedron, nSubdivisions) {
@@ -72,7 +72,7 @@ function updateVertexBuffer() {
 
 function render(timeStamp) {
     // clear screen (color set during setup)
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLES, 0, nVertices);
 }
 
@@ -151,6 +151,12 @@ window.onload = function init() {
 
     // enable instanced rendering
     instancedArrays = loadExtension('ANGLE_instanced_arrays');
+
+    // enable depth testing
+    gl.enable(gl.DEPTH_TEST);
+
+    // enable back face culling
+    gl.enable(gl.CULL_FACE);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.3921, 0.5843, 0.9294, 1.0);

@@ -9,19 +9,43 @@
     <script type="text/javascript" src="source.js"></script>
 
     <script id="vertex-shader" type="x-shader/x-vertex">
+        const vec4 lightPosition = vec4(0, 0, -1, 0);
+        const vec4 lightEmission = vec4(1, 1, 1, 0);
+        const float visibility = 1.0;
+
+        const vec4 incidentLight = visibility * lightEmission;
+
+        const float diffuseReflectionCoeff = 1.0;
+
         uniform mat4 P;
         uniform mat4 V;
+
         attribute mat4 M;
         attribute vec4 position;
+        
+        varying vec4 vertexColor;
+        
         void main() {
+            vec4 worldPosition = M * position;
+
+            vec3 w_i = lightPosition.w == 0.0 ? normalize(-lightPosition.xyz) : normalize(lightPosition.xyz - worldPosition.xyz);
+            vec3 normal = normalize(worldPosition.xyz);
+            
+            vec3 diffuse = diffuseReflectionCoeff * incidentLight.xyz * max(dot(normal, w_i), 0.0);
+
+            vertexColor = 0.5 * position + 0.5;
+
+            vertexColor.rgb *= diffuse;
+            
             gl_Position = P * V * M * position;
         }
     </script>
 
     <script id="fragment-shader" type="x-shader/x-fragment">
         precision mediump float;
+        varying vec4 vertexColor;
         void main() {
-            gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+            gl_FragColor = vertexColor;
         }
     </script>
 </head>
@@ -31,6 +55,7 @@
     <p>Current subdivision level: <span id="subDivLevel"></span></p>
     <button id="increment">Increment</button>
     <button id="decrement">Decrement</button>
+    <button id="toggleOrbit">Toggle Orbit</button>
 </body>
 
 </html>

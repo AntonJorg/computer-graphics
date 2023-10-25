@@ -11,6 +11,18 @@ var vertexBuffer;
 var subDivLevel = 0;
 var subDivLevelSpan; // HTML element
 
+var orbiting = true;
+var prevTimeStamp = 0;
+var theta = 0;
+const dist = 5;
+
+// lighting model parameters
+var ambientK;
+var diffuseK;
+var specularK;
+var shininess;
+var lightEmission;
+
 const initialTetrahedron = [
     vec3(0.0, 0.0, 1.0),
     vec3(0.0, 0.942809, -0.333333),
@@ -26,12 +38,11 @@ const indices = new Uint32Array([
 ]);
 const numInstances = 1;
 
-const P = perspective(45, 1, 0, 50);
-const V = lookAt(vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0));
-
+const P = perspective(45, 1, 1, 50);
+var Vloc;
 const M = new Float32Array([
-    ...flatten(translate(0.0, 0.0, -5.0)),
-])
+    ...flatten(translate(0.0, 0.0, 0.0)),
+]);
 
 
 function sphere(initialTetrahedron, nSubdivisions) {
@@ -72,16 +83,31 @@ function updateVertexBuffer() {
 
 function render(timeStamp) {
     // clear screen (color set during setup)
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    if (orbiting) {
+        theta += (timeStamp - prevTimeStamp) / 1000;
+        
+        let V = lookAt(
+            vec3(dist * Math.cos(theta), 0.0, dist * Math.sin(theta)), // eye
+            vec3(0.0, 0.0, 0.0), // at
+            vec3(0.0, 1.0, 0.0) // up
+        );
+
+        gl.uniformMatrix4fv(Vloc, false, flatten(V));
+    }
+
+    prevTimeStamp = timeStamp;
+    
     gl.drawArrays(gl.TRIANGLES, 0, nVertices);
+
 }
 
-function getAnimationFunction(renderFunction) {
-    return function (timeStamp) {
-        renderFunction(timeStamp);
+function animate(timeStamp) {
+        render(timeStamp);
         requestAnimationFrame(animate);
-    }
 }
+
 
 function setUpAttribute(data, attribute, size, divisor=0, mode=gl.STATIC_DRAW) {
     var buffer = gl.createBuffer();
@@ -152,6 +178,12 @@ window.onload = function init() {
     // enable instanced rendering
     instancedArrays = loadExtension('ANGLE_instanced_arrays');
 
+    // enable depth testing
+    gl.enable(gl.DEPTH_TEST);
+
+    // enable back face culling
+    gl.enable(gl.CULL_FACE);
+
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.3921, 0.5843, 0.9294, 1.0);
 
@@ -162,8 +194,7 @@ window.onload = function init() {
     var Ploc = gl.getUniformLocation(program, "P");
     gl.uniformMatrix4fv(Ploc, false, flatten(P));
 
-    var Vloc = gl.getUniformLocation(program, "V");
-    gl.uniformMatrix4fv(Vloc, false, flatten(V));
+    Vloc = gl.getUniformLocation(program, "V");
 
     // attributes
     vertexBuffer = setUpAttribute(flatten(vertices), "position", 3);
@@ -185,7 +216,27 @@ window.onload = function init() {
         updateVertexBuffer();
     })
 
-    animate = getAnimationFunction(render);
-    animate();
+    document.getElementById("toggleOrbit").addEventListener("click", (event) => {
+        orbiting = !orbiting;
+    })
+
+
+    function addSliderCallback(name, toUpdate) {
+        var elem = document.getElementById(name + "SliderValue");
+        document.getElementById(name + "Slider").addEventListener("input", (event) => {
+            let newVal = event.target.value;
+            toUpdate = newVal;
+            elem.textContent = newVal;
+        })
+    }
+
+    addSliderCallback("ambientK", ambientK);
+    addSliderCallback("diffuseK", diffuseK);
+    addSliderCallback("specularK", specularK);
+    addSliderCallback("shininess", shininess);
+    addSliderCallback("lightEmission", lightEmission);
+    
+
+    requestAnimationFrame(animate);
 }
 

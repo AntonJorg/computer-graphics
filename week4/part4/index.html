@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script type="text/javascript" src="../../common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../../common/initShaders.js"></script>
+    <script type="text/javascript" src="../../common/MV.js"></script>
+
+    <script type="text/javascript" src="source.js"></script>
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        const vec4 lightPosition = vec4(0, 0, -1, 0);
+        const vec4 lightEmission = vec4(1, 1, 1, 0);
+        const float visibility = 1.0;
+
+        const vec4 incidentLight = visibility * lightEmission;
+
+        const float diffuseReflectionCoeff = 1.0;
+
+        uniform mat4 P;
+        uniform mat4 V;
+
+        attribute mat4 M;
+        attribute vec4 position;
+        
+        varying vec4 vertexColor;
+        
+        void main() {
+            vec4 worldPosition = M * position;
+
+            vec3 w_i = lightPosition.w == 0.0 ? normalize(-lightPosition.xyz) : normalize(lightPosition.xyz - worldPosition.xyz);
+            vec3 normal = normalize(worldPosition.xyz);
+            
+            vec3 diffuse = diffuseReflectionCoeff * incidentLight.xyz * max(dot(normal, w_i), 0.0);
+
+            vertexColor = 0.5 * position + 0.5;
+
+            vertexColor.rgb *= diffuse;
+            
+            gl_Position = P * V * M * position;
+        }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec4 vertexColor;
+        void main() {
+            gl_FragColor = vertexColor;
+        }
+    </script>
+</head>
+
+<body>
+    <canvas id="canvas" width="512" height="512">HTML5 Canvas not supported!</canvas>
+    <p>Current subdivision level: <span id="subDivLevel"></span></p>
+    <fieldset>
+        <legend>Controls</legend>
+        <button id="increment">Increment</button>
+        <button id="decrement">Decrement</button>
+        <button id="toggleOrbit">Toggle Orbit</button>    
+    </fieldset>
+    <br/>
+    <fieldset>
+        <legend>Lighting Model Parameters</legend>
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Value</th>
+                    <th>Control</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <label for="ambientKSlider" style="width:2em">Ambient:</label>
+                    </td>
+                    <td>
+                        <span id="ambientKSliderValue"></span>
+                    </td>
+                    <td>
+                        <input type="range" id="ambientKSlider" name="ambientKSlider" min="0" max="100"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="diffuseKSlider">Diffuse:</label>
+                    </td>
+                    <td>
+                        <span id="diffuseKSliderValue"></span>
+                    </td>
+                    <td>
+                        <input type="range" id="diffuseKSlider" min="0" max="100"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="specularKSlider">Specular:</label>
+                    </td>
+                    <td>
+                        <span id="specularKSliderValue"></span>
+                    </td>
+                    <td>
+                        <input type="range" id="specularKSlider" min="0" max="100"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="shininessSlider">Shininess:</label>
+                    </td>
+                    <td>
+                        <span id="shininessSliderValue"></span>
+                    </td>
+                    <td>
+                        <input type="range" id="shininessSlider" name="shininessSlider" min="0" max="100"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="lightEmissionSlider">Emission:</label>
+                    </td>
+                    <td>
+                        <span id="lightEmissionSliderValue"></span>
+                    </td>
+                    <td>
+                        <input type="range" id="lightEmissionSlider" min="0" max="100"/>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </fieldset>
+</body>
+
+</html>
+

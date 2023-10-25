@@ -13,15 +13,19 @@
         uniform mat4 V;
         attribute mat4 M;
         attribute vec4 position;
+        varying vec4 vertexColor;
         void main() {
-            gl_Position = P * V * M * position;
+            vec4 vertexPosition = P * V * M * position;
+            vertexColor = 0.5 * vertexPosition + 0.5;
+            gl_Position = vertexPosition;
         }
     </script>
 
     <script id="fragment-shader" type="x-shader/x-fragment">
         precision mediump float;
+        varying vec4 vertexColor;
         void main() {
-            gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+            gl_FragColor = vertexColor;
         }
     </script>
 </head>
