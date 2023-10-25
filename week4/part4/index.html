@@ -52,12 +52,40 @@
 
 <body>
     <canvas id="canvas" width="512" height="512">HTML5 Canvas not supported!</canvas>
-    <p>Current subdivision level: <span id="subDivLevel"></span></p>
     <fieldset>
         <legend>Controls</legend>
-        <button id="increment">Increment</button>
-        <button id="decrement">Decrement</button>
-        <button id="toggleOrbit">Toggle Orbit</button>    
+        <table>
+            <thead>
+                <th></th>
+                <th>Value</th>
+                <th>Control</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        Subdivision level:
+                    </td>
+                    <td>
+                        <span id="subDivLevel"></span>
+                    </td>
+                    <td>
+                        <button id="decrement">Decrement</button>
+                        <button id="increment">Increment</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Orbiting:
+                    </td>
+                    <td>
+                        <span id="orbitingValue">true</span>
+                    </td>
+                    <td>
+                        <button id="toggleOrbit">Toggle Orbit</button>            
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </fieldset>
     <br/>
     <fieldset>

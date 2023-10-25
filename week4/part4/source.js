@@ -216,8 +216,10 @@ window.onload = function init() {
         updateVertexBuffer();
     })
 
+    var orbitingValueSpan = document.getElementById("orbitingValue");
     document.getElementById("toggleOrbit").addEventListener("click", (event) => {
         orbiting = !orbiting;
+        orbitingValueSpan.textContent = orbiting;
     })
 
 
