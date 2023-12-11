@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script type="text/javascript" src="../../common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../../common/initShaders.js"></script>
+    <script type="text/javascript" src="../../common/MV.js"></script>
+
+    <script type="text/javascript" src="source.js"></script>
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        uniform mat4 P;
+        uniform mat4 V;
+        
+        attribute vec4 vertexPosition;
+        attribute vec2 vertexTextureCoord;
+
+        varying vec2 fragmentTextureCoord;
+
+        void main() {
+            fragmentTextureCoord = vertexTextureCoord;
+
+            gl_Position = P * V * vertexPosition;
+        }
+        </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+
+        uniform sampler2D textureMap;
+
+        varying vec2 fragmentTextureCoord;
+
+        void main() {
+            gl_FragColor = texture2D(textureMap, fragmentTextureCoord);
+        }
+    </script>
+</head>
+
+<body>
+    <canvas id="canvas" width="512" height="512">HTML5 Canvas not supported!</canvas>
+    <fieldset>
+        <legend>Texture Parameters</legend>
+        <table>
+            <thead>
+                <tr>
+                    <th>Setting</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <label for="textureWrap">Texture wrap:</label>
+                    </td>
+                    <td>
+                        <select name="textureWrap" id="textureWrap">
+                            <option value="33071">Clamp to Edge</option>
+                            <option selected value="10497">Repeat</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="magnificationFilter">Magnification filter:</label>
+                    </td>
+                    <td>
+                        <select name="magnificationFilter" id="magnificationFilter">
+                            <option selected value="9728">Nearest</option>
+                            <option value="9729">Linear</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="minificationFilter">Minification filter:</label>
+                    </td>
+                    <td>
+                        <select name="minificationFilter" id="minificationFilter">
+                            <option selected value="9728">Nearest</option>
+                            <option value="9729">Linear</option>
+                            <option value="9984">Nearest Mipmap Nearest</option>
+                            <option value="9985">Linear Mipmap Nearest</option>
+                            <option value="9986">Nearest Mipmap Linear</option>
+                            <option value="9987">Linear Mipmap Linear</option>
+                        </select>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </fieldset>
+</body>
+
+</html>

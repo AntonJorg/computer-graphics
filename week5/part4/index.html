@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script type="text/javascript" src="../../common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../../common/initShaders.js"></script>
+    <script type="text/javascript" src="../../common/MV.js"></script>
+    <script type="text/javascript" src="../../common/OBJParser.js"></script>
+
+    <script type="text/javascript" src="source.js"></script>
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        
+        const float visibility = 1.0;
+
+        uniform float emissionL;
+        uniform float ambientK;
+        uniform float diffuseK;
+        uniform float specularK;
+        uniform float shininess;
+
+        uniform vec3 lightPosition;
+
+        uniform mat4 P;
+        uniform mat4 V;
+
+        attribute mat4 M;
+        attribute vec4 position;
+        attribute vec4 color;
+        attribute vec4 normal;
+        
+        varying vec4 vertexColor;
+        varying vec3 w_i;
+        varying vec3 norm;
+        varying vec3 w_o;
+        varying vec3 w_r;
+        
+        void main() {
+            vec4 eyeSpacePosition = V * M * position;
+            vec4 eyeSpaceLightPosition = vec4(lightPosition, 0.0); // lightPosition is provided in eye coordinates
+
+            w_i = eyeSpaceLightPosition.w == 0.0 ? normalize(-eyeSpaceLightPosition.xyz) : normalize(eyeSpacePosition.xyz - eyeSpaceLightPosition.xyz);
+            norm = normal.xyz;
+            w_o = normalize(-eyeSpacePosition.xyz);
+            w_r = normalize(reflect(-w_i, norm));
+
+            vertexColor = color;
+            
+            gl_Position = P * eyeSpacePosition;
+        }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+
+        uniform float emissionL;
+        uniform float ambientK;
+        uniform float diffuseK;
+        uniform float specularK;
+        uniform float shininess;
+
+        
+
+        varying vec3 w_i;
+        varying vec3 norm;
+        varying vec3 w_o;
+        varying vec3 w_r;
+
+        varying vec4 vertexColor;
+        
+        void main() {
+       
+            vec3 lightEmission = vec3(1, 1, 1) * emissionL; // white light with variable intensity
+
+            vec3 w_i_n = normalize(w_i);
+            vec3 normal_n = normalize(norm);
+            vec3 w_o_n = normalize(w_o);
+            vec3 w_r_n = normalize(w_r);
+
+            vec3 diffuse = diffuseK * lightEmission * max(dot(normal_n, w_i_n), 0.0);
+            vec3 specular = specularK * lightEmission * pow(max(dot(w_r_n, w_o_n), 0.0), shininess);
+            vec3 ambient = ambientK * lightEmission;
+            
+            vec4 fragmentColor = vertexColor;
+            fragmentColor.rgb *= diffuse + specular + ambient;
+
+            gl_FragColor = fragmentColor;
+        }
+    </script>
+</head>
+
+<body>
+    <canvas id="canvas" width="512" height="512">HTML5 Canvas not supported!</canvas>
+    <fieldset>
+        <legend>Controls</legend>
+        <table>
+            <thead>
+                <th></th>
+                <th>Value</th>
+                <th>Control</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        Orbiting:
+                    </td>
+                    <td>
+                        <span id="orbitingValue">true</span>
+                    </td>
+                    <td>
+                        <button id="toggleOrbit">Toggle Orbit</button>            
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </fieldset>
+    <br/>
+    <fieldset>
+        <legend>Lighting Model Parameters</legend>
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Value</th>
+                    <th>Control</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <label for="lightEmissionSlider">Emission:</label>
+                    </td>
+                    <td>
+                        <span id="lightEmissionSliderValue">1</span>
+                    </td>
+                    <td>
+                        <input type="range" id="lightEmissionSlider" min="0" max="2" value="1" step="0.01"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="ambientKSlider" style="width:2em">Ambient:</label>
+                    </td>
+                    <td>
+                        <span id="ambientKSliderValue">0.5</span>
+                    </td>
+                    <td>
+                        <input type="range" id="ambientKSlider" name="ambientKSlider" min="0" max="1" step="0.01" value="0.5"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="diffuseKSlider">Diffuse:</label>
+                    </td>
+                    <td>
+                        <span id="diffuseKSliderValue">0.5</span>
+                    </td>
+                    <td>
+                        <input type="range" id="diffuseKSlider" min="0" max="1" step="0.01" value="0.5"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="specularKSlider">Specular:</label>
+                    </td>
+                    <td>
+                        <span id="specularKSliderValue">0.5</span>
+                    </td>
+                    <td>
+                        <input type="range" id="specularKSlider" min="0" max="1" step="0.01" value="0.5"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="shininessSlider">Shininess:</label>
+                    </td>
+                    <td>
+                        <span id="shininessSliderValue">100</span>
+                    </td>
+                    <td>
+                        <input type="range" id="shininessSlider" name="shininessSlider" min="0" max="200" value="100"/>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </fieldset>
+</body>
+
+</html>
+

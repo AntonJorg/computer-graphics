@@ -35,6 +35,8 @@ function onReadComplete(gl, program, objDoc) {
     drawingInfo.nVertices = drawingInfo.vertices.length;
     drawingInfo.nElements = drawingInfo.indices.length;
     
+    console.log(drawingInfo.colors)
+
     // Write date into the buffer object
     gl.bindBuffer(gl.ARRAY_BUFFER, program.vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.vertices,gl.STATIC_DRAW);
@@ -235,7 +237,7 @@ window.onload = function init() {
 
     // attributes
     program.vertexBuffer = setUpAttribute([], "position", 3);
-    program.colorBuffer = setUpAttribute([], "color", 3);
+    program.colorBuffer = setUpAttribute([], "color", 4);
     program.normalBuffer = setUpAttribute([], "normal", 3);
     
     program.M = setUpMatrixAttribute(M, "M", 4, divisor=1);

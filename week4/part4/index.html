@@ -28,22 +28,23 @@
         attribute mat4 M;
         attribute vec4 position;
         
-        varying vec3 vertexColor;
-        varying vec3 w_i;
-        varying vec3 normal;
-        varying vec3 w_o;
-        varying vec3 w_r;
+        varying vec4 vertexColor;
         
         void main() {
             vec4 eyeSpacePosition = V * M * position;
             vec4 eyeSpaceLightPosition = vec4(lightPosition, 0.0); // lightPosition is provided in eye coordinates
 
-            w_i = eyeSpaceLightPosition.w == 0.0 ? normalize(-eyeSpaceLightPosition.xyz) : normalize(eyeSpacePosition.xyz - eyeSpaceLightPosition.xyz);
-            normal = normalize(mat3(V) * position.xyz);
-            w_o = normalize(-eyeSpacePosition.xyz);
-            w_r = normalize(reflect(-w_i, normal));
+            vec3 w_i = eyeSpaceLightPosition.w == 0.0 ? normalize(-eyeSpaceLightPosition.xyz) : normalize(eyeSpacePosition.xyz - eyeSpaceLightPosition.xyz);
+            vec3 normal = normalize(mat3(V) * position.xyz);
+            vec3 w_o = normalize(-eyeSpacePosition.xyz);
+            vec3 w_r = normalize(reflect(-w_i, normal));
+
+            vec3 diffuse = diffuseK * lightEmission * max(dot(normal, w_i), 0.0);
+            vec3 specular = specularK * lightEmission * pow(max(dot(w_r, w_o), 0.0), shininess);
+            vec3 ambient = ambientK * lightEmission;
 
             vertexColor = 0.5 * position + 0.5;
+            vertexColor.rgb *= diffuse + specular + ambient;
             
             gl_Position = P * eyeSpacePosition;
         }
@@ -51,26 +52,8 @@
 
     <script id="fragment-shader" type="x-shader/x-fragment">
         precision mediump float;
-
-        varying vec3 w_i;
-        varying vec3 normal;
-        varying vec3 w_o;
-        varying vec3 w_r;
-
-        varying vertexColor;
-
+        varying vec4 vertexColor;
         void main() {
-            w_i = normalize(w_i);
-            normal = normalize(normal);
-            w_o = normalize(w_o);
-            w_r = normalize(w_r);
-
-            vec3 diffuse = diffuseK * lightEmission * max(dot(normal, w_i), 0.0);
-            vec3 specular = specularK * lightEmission * pow(max(dot(w_r, w_o), 0.0), shininess);
-            vec3 ambient = ambientK * lightEmission;
-
-            vertexColor.rgb *= diffuse + specular + ambient;
-
             gl_FragColor = vertexColor;
         }
     </script>

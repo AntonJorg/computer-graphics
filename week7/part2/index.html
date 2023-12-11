@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script type="text/javascript" src="../../common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../../common/initShaders.js"></script>
+    <script type="text/javascript" src="../../common/MV.js"></script>
+
+    <script type="text/javascript" src="source.js"></script>
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        uniform mat4 P;
+        uniform mat4 V;
+
+        // texture space transform
+        uniform mat4 MTex;
+
+        attribute vec4 position;
+        
+        varying vec4 fragmentPosition;
+        
+        void main() {
+            fragmentPosition = MTex * position;
+
+            gl_Position = P * V * position;
+        }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+
+        uniform samplerCube textureMap;
+
+        varying vec4 vertexColor;
+        varying vec4 fragmentPosition;
+
+        void main() {
+            // re-normalize interpolated normals
+            vec3 normal = normalize(fragmentPosition.xyz);
+
+            gl_FragColor = textureCube(textureMap, normal);
+        }
+    </script>
+</head>
+
+<body>
+    <canvas id="canvas" width="512" height="512">HTML5 Canvas not supported!</canvas>
+    <button id="toggleOrbit">Toggle Orbit</button>
+</body>
+
+</html>
+
