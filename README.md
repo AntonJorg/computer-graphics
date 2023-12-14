@@ -11,3 +11,6 @@
     - Explain MTex transformation
 - W7P3
     - Investigate wether it should look different than W7P2
+- w8
+    - Add on/off button for light orbiting
+

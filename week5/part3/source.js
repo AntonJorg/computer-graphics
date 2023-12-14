@@ -26,33 +26,7 @@ const M = new Float32Array([
 ]);
 
 
-var g_objDoc; // The information of OBJ file
-var g_drawingInfo; // The information for drawing 3D model
 
-function onReadComplete(gl, program, objDoc) {
-    // Acquire the vertex coordinates and colors from OBJ file
-    var drawingInfo = objDoc.getDrawingInfo();
-    drawingInfo.nVertices = drawingInfo.vertices.length;
-    drawingInfo.nElements = drawingInfo.indices.length;
-    
-    console.log(drawingInfo.colors)
-
-    // Write date into the buffer object
-    gl.bindBuffer(gl.ARRAY_BUFFER, program.vertexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.vertices,gl.STATIC_DRAW);
-    
-    gl.bindBuffer(gl.ARRAY_BUFFER, program.normalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.normals, gl.STATIC_DRAW);
-    
-    gl.bindBuffer(gl.ARRAY_BUFFER, program.colorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.colors, gl.STATIC_DRAW);
-    
-    // Write the indices to the buffer object
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, program.indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, drawingInfo.indices, gl.STATIC_DRAW);
-
-    return drawingInfo;
-}
 
 
 function render(timeStamp) {
@@ -177,6 +151,33 @@ function onReadOBJFile(fileString, fileName, scale, reverse) {
     g_objDoc = objDoc;
 }
 
+var g_objDoc; // The information of OBJ file
+var g_drawingInfo; // The information for drawing 3D model
+
+function onReadComplete(gl, program, objDoc) {
+    // Acquire the vertex coordinates and colors from OBJ file
+    var drawingInfo = objDoc.getDrawingInfo();
+    drawingInfo.nVertices = drawingInfo.vertices.length;
+    drawingInfo.nElements = drawingInfo.indices.length;
+    
+    console.log(drawingInfo.colors)
+
+    // Write date into the buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, program.vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.vertices,gl.STATIC_DRAW);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, program.normalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.normals, gl.STATIC_DRAW);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, program.colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.colors, gl.STATIC_DRAW);
+    
+    // Write the indices to the buffer object
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, program.indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, drawingInfo.indices, gl.STATIC_DRAW);
+
+    return drawingInfo;
+}
 
 window.onload = function init() {
     // setup

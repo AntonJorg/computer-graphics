@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script type="text/javascript" src="../../common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../../common/initShaders.js"></script>
+    <script type="text/javascript" src="../../common/MV.js"></script>
+    <script type="text/javascript" src="../../common/OBJParser.js"></script>
+
+    <script type="text/javascript" src="source.js"></script>
+
+    <script id="ground-vertex-shader" type="x-shader/x-vertex">
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+        
+        attribute vec4 vertexPosition;
+        attribute vec2 vertexTextureCoord;
+
+        varying vec2 fragmentTextureCoord;
+
+        void main() {
+            fragmentTextureCoord = vertexTextureCoord;
+
+            gl_Position = P * V * M * vertexPosition;
+        }
+        </script>
+
+    <script id="ground-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+
+        uniform sampler2D textureMap;
+
+        uniform float visibility;
+
+        varying vec2 fragmentTextureCoord;
+
+        void main() {
+            vec4 textureColor = texture2D(textureMap, fragmentTextureCoord);
+            textureColor.rgb *= visibility;
+            gl_FragColor = textureColor;
+        }
+    </script>
+
+    <script id="teapot-vertex-shader" type="x-shader/x-vertex">
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+        
+        attribute vec4 vertexPosition;
+        attribute vec4 vertexColor;
+        attribute vec4 vertexNormal;
+
+        varying vec4 fragmentColor;
+        varying vec4 fragmentNormal;
+
+        void main() {
+            fragmentColor = vertexColor;
+            fragmentNormal = vertexNormal;
+            gl_Position = P * V * M * vertexPosition;
+        }
+        </script>
+
+    <script id="teapot-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+
+        varying vec4 fragmentColor;
+        varying vec4 fragmentNormal;
+
+        void main() {
+            gl_FragColor = fragmentColor;
+        }
+    </script>
+</head>
+
+<body>
+    <canvas id="canvas" width="512" height="512">HTML5 Canvas not supported!</canvas>
+</body>
+
+</html>
