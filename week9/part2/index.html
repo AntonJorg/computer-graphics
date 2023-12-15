@@ -67,7 +67,7 @@
             vec4 eyeSpacePosition = V * M * vertexPosition;
             vec4 eyeSpaceLightPosition = V * lightPosition;
             vec4 eyeSpaceNormal = vertexNormal;
-            eyeSpaceNormal.y *= -1.0;
+            //eyeSpaceNormal.y *= -1.0;
 
             w_i = eyeSpaceLightPosition.w == 0.0 ? normalize(-eyeSpaceLightPosition.xyz) : normalize(eyeSpacePosition.xyz - eyeSpaceLightPosition.xyz);
             w_o = normalize(-eyeSpacePosition.xyz);
@@ -149,6 +149,17 @@
                     </td>
                     <td>
                         <button id="toggleOrbit">Toggle</button>            
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Render from lightsource:
+                    </td>
+                    <td>
+                        <span id="renderingValue">true</span>
+                    </td>
+                    <td>
+                        <button id="toggleRender">Toggle</button>            
                     </td>
                 </tr>
             </tbody>

@@ -10,6 +10,8 @@ var groundVertices = flatten([
     vec3(-2.0, -1.0, -5.0)
 ]);
 
+// center: 0.0,, -1, -3.0
+
 const groundTextureCoords = flatten([
     vec2(0.0, 0.0),
     vec2(1.0, 0.0),
@@ -22,18 +24,19 @@ const groundIndices = new Uint32Array([0, 1, 2, 3, 0, 2]);
 var dummyTextureCoords;
 
 const P = perspective(90, 1, 1, 50);
-const V = lookAt(vec3(0.0, -1.0, 1.0), vec3(0.0, -1.0, -1.5), vec3(0.0, 1.0, 0.0));
+const defaultV = lookAt(vec3(0.0, 0.5, -1.0), vec3(0.0, -1.0, -3.0), vec3(0.0, 1.0, 0.0));
 const Mp = mat4();
 Mp[0][0] = 1.0;
 Mp[1][1] = 1.0;
 Mp[2][2] = 1.0;
 Mp[3][3] = 0.0;
-Mp[3][1] = 1.0 / (-1 - 2 - 0.0001); // -(y_light - y_ground) = (y_ground - y_light)
+Mp[3][1] = 1.0 / (- 1 - 2 - 0.0001); // -(y_light - y_ground) = (y_ground - y_light)
 
 const teapotDefaultM = translate(0.0, -1.0, -3.0);
 
 const I = mat4();
 
+var render_from_lightsource = false;
 var orbiting = true;
 var bouncing = true;
 var orbit_theta = 0;
@@ -56,12 +59,21 @@ function render(timeStamp) {
 
     let lightPosition = vec4(2*Math.cos(orbit_theta), 2.0, -2.0 + 2*Math.sin(orbit_theta), 1.0);
 
-    let T_pl = translate(lightPosition[0], lightPosition[1], lightPosition[2]);
+    var V;
+    if (render_from_lightsource) {
+        V = lookAt(vec3(lightPosition), vec3(0.0, -1.0, -3.0), vec3(0.0, 1.0, 0.0));
+    } else {
+        V = defaultV;
+    }
+
+    let T_pl = translate(lightPosition.x, lightPosition.y, lightPosition.z);
     let T_neg_pl = translate(-lightPosition[0], -lightPosition[1], -lightPosition[2]);
-    let Ms = mult(T_pl, mult(Mp, T_neg_pl));
+    
+    let teapotM = teapotDefaultM//mult(teapotDefaultM, translate(0.0, 1.5 * Math.abs(Math.sin(bounce_theta)), 0.0));
+    
+    let Ms = T_pl//mult(T_neg_pl, teapotM);
 
-    let teapotM = add(teapotDefaultM, translate(0.0, 1.5 * Math.abs(Math.sin(bounce_theta)), 0.0));
-
+    
     // draw ground
     gl.useProgram(groundProgram);
     // update buffers
@@ -69,16 +81,17 @@ function render(timeStamp) {
     initAttributeVariable(groundProgram.vertexTextureCoordBuffer);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, groundProgram.indexBuffer);
     
+    gl.uniformMatrix4fv(groundProgram.V, false, flatten(V));
     gl.uniformMatrix4fv(groundProgram.M, false, flatten(I));
 
-    //gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
 
 
     // draw shadows
     gl.depthFunc(gl.ALWAYS);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    gl.uniformMatrix4fv(groundProgram.M, false, flatten(mult(Ms, teapotM)));
+    gl.uniformMatrix4fv(groundProgram.M, false, flatten(Ms));
     gl.uniform1f(groundProgram.visibility, 0.5);
     
     gl.drawElements(gl.TRIANGLES, g_drawingInfo.nElements, gl.UNSIGNED_INT, 6 * 4);
@@ -92,6 +105,7 @@ function render(timeStamp) {
     //initAttributeVariable(teapotProgram.normalBuffer);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, teapotProgram.indexBuffer);
 
+    gl.uniformMatrix4fv(teapotProgram.V, false, flatten(V));
     gl.uniformMatrix4fv(teapotProgram.M, false, flatten(teapotM));
 
     gl.uniform4fv(teapotProgram.lightPosition, lightPosition);
@@ -220,10 +234,8 @@ function initGroundProgram() {
     gl.uniformMatrix4fv(groundProgram.P, false, flatten(P));
 
     groundProgram.V = gl.getUniformLocation(groundProgram, "V");
-    gl.uniformMatrix4fv(groundProgram.V, false, flatten(V));
 
     groundProgram.M = gl.getUniformLocation(groundProgram, "M");
-    gl.uniformMatrix4fv(groundProgram.M, false, flatten(I));
 
 
     //groundProgram.visibility = gl.getUniformLocation(groundProgram, "visibility");
@@ -275,10 +287,8 @@ function initTeapotProgram() {
     gl.uniformMatrix4fv(teapotProgram.P, false, flatten(P));
 
     teapotProgram.V = gl.getUniformLocation(teapotProgram, "V");
-    gl.uniformMatrix4fv(teapotProgram.V, false, flatten(V));
 
     teapotProgram.M = gl.getUniformLocation(teapotProgram, "M");
-    gl.uniformMatrix4fv(teapotProgram.M, false, flatten(I));
 
     teapotProgram.emissionL = gl.getUniformLocation(teapotProgram, "emissionL");
     gl.uniform1f(teapotProgram.emissionL, 1.0);
@@ -335,6 +345,12 @@ window.onload = function init() {
     document.getElementById("toggleOrbit").addEventListener("click", (event) => {
         orbiting = !orbiting;
         orbitingValueSpan.textContent = orbiting.toString();
+    })
+
+    var renderingValueSpan = document.getElementById("renderingValue");
+    document.getElementById("toggleRender").addEventListener("click", (event) => {
+        render_from_lightsource = !render_from_lightsource;
+        renderingValueSpan.textContent = render_from_lightsource.toString();
     })
 
     function addSliderCallback(name, uniformLoc) {

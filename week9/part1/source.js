@@ -65,7 +65,7 @@ function render(timeStamp) {
     
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
 
-    let teapotM = add(teapotDefaultM, translate(0.0, 1.5 * Math.abs(Math.sin(bounce_theta)), 0.0))
+    let teapotM = mult(teapotDefaultM, translate(0.0, 1.5 * Math.abs(Math.sin(bounce_theta)), 0.0))
 
     // draw objects
     gl.useProgram(teapotProgram);
