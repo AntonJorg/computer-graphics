@@ -16,7 +16,7 @@
         varying vec4 vertexColor;
         void main() {
             vec4 vertexPosition = P * V * M * position;
-            vertexColor = 0.5 * vertexPosition + 0.5;
+            vertexColor = 0.5 * position + 0.5;
             gl_Position = vertexPosition;
         }
     </script>

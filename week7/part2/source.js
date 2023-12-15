@@ -12,7 +12,7 @@ var subDivLevel = 6;
 var orbiting = true;
 var prevTimeStamp = 0;
 var theta = 0;
-const dist = 5;
+const dist = 3;
 
 const initialTetrahedron = [
     vec3(0.0, 0.0, 1.0),
@@ -31,8 +31,8 @@ const indices = new Uint32Array([
 ]);
 const numInstances = 1;
 
-const P = new Float32Array(flatten(perspective(45, 1, 1, 50)));
-const PInv = inverse(perspective(45, 1, 1, 50));
+const P = new Float32Array(flatten(perspective(90, 1, 1, 50)));
+const PInv = inverse(perspective(90, 1, 1, 50));
 
 const I = new Float32Array(flatten(mat4()));
 

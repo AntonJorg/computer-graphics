@@ -75,7 +75,7 @@ var prevTimeStamp = 0;
 
 function render(timeStamp) {
     // clear screen (color set during setup)
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     let diff = (timeStamp - prevTimeStamp) / 2000;
     if (diff) {

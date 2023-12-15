@@ -8,7 +8,7 @@ function drawScene(timeStamp) {
     var canvas = document.getElementById("canvas");
     var gl = canvas.getContext("webgl");
 
-    theta += 0.01 * (timeStamp - lastTimeStamp);
+    theta -= 0.01 * (timeStamp - lastTimeStamp);
     lastTimeStamp = timeStamp;
 
     // rotation matrix

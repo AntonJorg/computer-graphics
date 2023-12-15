@@ -14,7 +14,7 @@ var subDivLevelSpan; // HTML element
 var orbiting = true;
 var prevTimeStamp = 0;
 var theta = 0;
-const dist = 5;
+const dist = 3;
 
 const initialTetrahedron = [
     vec3(0.0, 0.0, 1.0),
@@ -31,7 +31,7 @@ const indices = new Uint32Array([
 ]);
 const numInstances = 1;
 
-const P = perspective(45, 1, 1, 50);
+const P = perspective(90, 1, 1, 50);
 var Vloc;
 const M = new Float32Array([
     ...flatten(translate(0.0, 0.0, 0.0)),

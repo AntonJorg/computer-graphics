@@ -7,6 +7,7 @@
 - W6P3
     - Explain choice of filtering
     - Fix seam in globe?
+    - Make sun move
 - W7P2
     - Explain MTex transformation
 - W7P3

@@ -22,7 +22,7 @@ const groundIndices = new Uint32Array([0, 1, 2, 3, 0, 2]);
 var dummyTextureCoords;
 
 const P = perspective(90, 1, 1, 50);
-const V = lookAt(vec3(0.0, 0.5, 0.5), vec3(0.0, 0.0, -1.5), vec3(0.0, 1.0, 0.0));
+const V = lookAt(vec3(0.0, -1.0, 1.0), vec3(0.0, -1.0, -1.5), vec3(0.0, 1.0, 0.0));
 const Mp = mat4();
 Mp[0][0] = 1.0;
 Mp[1][1] = 1.0;
@@ -56,6 +56,12 @@ function render(timeStamp) {
 
     let lightPosition = vec4(2*Math.cos(orbit_theta), 2.0, -2.0 + 2*Math.sin(orbit_theta), 1.0);
 
+    let T_pl = translate(lightPosition[0], lightPosition[1], lightPosition[2]);
+    let T_neg_pl = translate(-lightPosition[0], -lightPosition[1], -lightPosition[2]);
+    let Ms = mult(T_pl, mult(Mp, T_neg_pl));
+
+    let teapotM = add(teapotDefaultM, translate(0.0, 1.5 * Math.abs(Math.sin(bounce_theta)), 0.0));
+
     // draw ground
     gl.useProgram(groundProgram);
     // update buffers
@@ -63,13 +69,24 @@ function render(timeStamp) {
     initAttributeVariable(groundProgram.vertexTextureCoordBuffer);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, groundProgram.indexBuffer);
     
-    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
+    gl.uniformMatrix4fv(groundProgram.M, false, flatten(I));
 
-    let teapotM = add(teapotDefaultM, translate(0.0, 1.5 * Math.abs(Math.sin(bounce_theta)), 0.0))
+    //gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
+
+
+    // draw shadows
+    gl.depthFunc(gl.ALWAYS);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.uniformMatrix4fv(groundProgram.M, false, flatten(mult(Ms, teapotM)));
+    gl.uniform1f(groundProgram.visibility, 0.5);
+    
+    gl.drawElements(gl.TRIANGLES, g_drawingInfo.nElements, gl.UNSIGNED_INT, 6 * 4);
 
     // draw objects
     gl.useProgram(teapotProgram);
-    //gl.depthFunc(gl.LESS);
+    gl.depthFunc(gl.LESS);
+    gl.disable(gl.BLEND);
     initAttributeVariable(teapotProgram.vertexBuffer);
     initAttributeVariable(teapotProgram.colorBuffer);
     //initAttributeVariable(teapotProgram.normalBuffer);
@@ -79,7 +96,7 @@ function render(timeStamp) {
 
     gl.uniform4fv(teapotProgram.lightPosition, lightPosition);
 
-    gl.drawElements(gl.TRIANGLES, g_drawingInfo.nElements, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(gl.TRIANGLES, g_drawingInfo.nElements, gl.UNSIGNED_INT, 0);
 
     prevTimeStamp = timeStamp;
 }
@@ -87,7 +104,7 @@ function render(timeStamp) {
 function animate(timeStamp) {
     if (!g_drawingInfo && g_objDoc && g_objDoc.isMTLComplete()) {
         // OBJ and all MTLs are available
-        g_drawingInfo = onReadComplete(gl, teapotProgram, g_objDoc);
+        g_drawingInfo = onReadComplete(gl, g_objDoc);
     }
     if (g_drawingInfo) {
         render(timeStamp);
@@ -130,30 +147,41 @@ function onReadOBJFile(fileString, fileName, scale, reverse) {
 var g_objDoc; // The information of OBJ file
 var g_drawingInfo; // The information for drawing 3D model
 
-function onReadComplete(gl, program, objDoc) {
+function onReadComplete(gl, objDoc) {
     // Acquire the vertex coordinates and colors from OBJ file
     var drawingInfo = objDoc.getDrawingInfo();
     drawingInfo.nVertices = drawingInfo.vertices.length;
     drawingInfo.nElements = drawingInfo.indices.length;
     
-    console.log(drawingInfo.colors)
-
-    // Write date into the buffer object
-    gl.bindBuffer(gl.ARRAY_BUFFER, program.vertexBuffer);
+    // Write data into the buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, teapotProgram.vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.vertices,gl.STATIC_DRAW);
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, program.normalBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, groundProgram.vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([...groundVertices, ...drawingInfo.vertices]), gl.STATIC_DRAW);
+    
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, teapotProgram.normalBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.normals, gl.STATIC_DRAW);
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, program.colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, teapotProgram.colorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.colors, gl.STATIC_DRAW);
     
     // Write the indices to the buffer object
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, program.indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, drawingInfo.indices, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, teapotProgram.indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(drawingInfo.indices), gl.STATIC_DRAW);
 
-    dummyTextureCoords = new Float32Array(Array(drawingInfo.nElements * 2).fill(0.0))
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, groundProgram.indexBuffer);
+    let new_indices = new Uint32Array(drawingInfo.indices);
+    for (let index = 0; index < drawingInfo.indices.length; index++) {
+        new_indices[index] += 4; 
+    }
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array([...groundIndices, ...new_indices]), gl.STATIC_DRAW);
 
+    dummyTextureCoords = Array(drawingInfo.nElements * 2).fill(0.0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, groundProgram.vertexTextureCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([...groundTextureCoords, ...dummyTextureCoords]), gl.STATIC_DRAW);
+    
     return drawingInfo;
 }
 
