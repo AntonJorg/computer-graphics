@@ -12,15 +12,18 @@
     <script id="ground-vertex-shader" type="x-shader/x-vertex">
         uniform mat4 P;
         uniform mat4 V;
+        uniform mat4 lightV;
         uniform mat4 M;
         
         attribute vec4 vertexPosition;
         attribute vec2 vertexTextureCoord;
 
+        varying vec4 fragmentNDC;
         varying vec2 fragmentTextureCoord;
 
         void main() {
             fragmentTextureCoord = vertexTextureCoord;
+            fragmentNDC = P * lightV * M * vertexPosition;
             gl_Position = P * V * M * vertexPosition;
         }
         </script>
@@ -29,11 +32,39 @@
         precision mediump float;
 
         uniform sampler2D textureMap;
+        uniform sampler2D shadowMap;
 
+        uniform int renderDepth;
+
+        varying vec4 fragmentNDC;
         varying vec2 fragmentTextureCoord;
 
+        float unpackDepth(const in vec4 rgbaDepth) {
+            const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
+            return dot(rgbaDepth, bitShift);
+        }
+
         void main() {
-            gl_FragColor = texture2D(textureMap, fragmentTextureCoord);
+            if (renderDepth == 1) {
+                const vec4 bitShift = vec4(1.0, 256.0, 256.0*256.0, 256.0*256.0*256.0);
+                const vec4 bitMask = vec4(1.0/256.0, 1.0/256.0, 1.0/256.0, 0.0);
+                vec4 rgbaDepth = fract(gl_FragCoord.z*bitShift);
+                rgbaDepth -= rgbaDepth.gbaa*bitMask;
+                gl_FragColor = rgbaDepth;
+            } else {
+                vec3 shadowCoord = 0.5 * fragmentNDC.xyz / fragmentNDC.w + 0.5;
+
+                vec4 rgbaDepth = texture2D(shadowMap, shadowCoord.xy);
+                float depth = unpackDepth(rgbaDepth);
+                
+                vec4 color = texture2D(textureMap, fragmentTextureCoord);
+
+                if (shadowCoord.z > depth + 0.0015) {
+                    color.rgb *= 0.5;
+                }
+
+                gl_FragColor = color;
+            }
         }
     </script>
 
@@ -50,12 +81,14 @@
         
         uniform mat4 P;
         uniform mat4 V;
+        uniform mat4 lightV;
         uniform mat4 M;
         
         attribute vec4 vertexPosition;
         attribute vec4 vertexColor;
         attribute vec4 vertexNormal;
 
+        varying vec4 fragmentNDC;
         varying vec4 fragmentColor;
         varying vec3 fragmentNormal;
 
@@ -64,6 +97,7 @@
         varying vec3 w_r;
 
         void main() {
+
             vec4 eyeSpacePosition = V * M * vertexPosition;
             vec4 eyeSpaceLightPosition = V * lightPosition;
             vec3 eyeSpaceNormal = mat3(V) * vertexNormal.xyz;
@@ -74,6 +108,7 @@
 
             fragmentNormal = eyeSpaceNormal.xyz;
 
+            fragmentNDC = P * lightV * M * vertexPosition;
             fragmentColor = vertexColor;
             
             gl_Position = P * eyeSpacePosition;
@@ -89,15 +124,33 @@
         uniform float specularK;
         uniform float shininess;
 
+        uniform int renderDepth;
+
+        uniform sampler2D shadowMap;
+
         varying vec3 w_i;
         varying vec3 fragmentNormal;
         varying vec3 w_o;
         varying vec3 w_r;
 
+        varying vec4 fragmentNDC;
         varying vec4 fragmentColor;
         
+        float unpackDepth(const in vec4 rgbaDepth) {
+            const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
+            return dot(rgbaDepth, bitShift);
+        }
+
         void main() {
-       
+            if (renderDepth == 1) {
+                const vec4 bitShift = vec4(1.0, 256.0, 256.0*256.0, 256.0*256.0*256.0);
+                const vec4 bitMask = vec4(1.0/256.0, 1.0/256.0, 1.0/256.0, 0.0);
+                vec4 rgbaDepth = fract(gl_FragCoord.z*bitShift);
+                rgbaDepth -= rgbaDepth.gbaa*bitMask;
+                gl_FragColor = rgbaDepth;
+                return;
+            }
+
             vec3 lightEmission = vec3(1, 1, 1) * emissionL; // white light with variable intensity
 
             vec3 w_i_n = normalize(w_i);
@@ -112,6 +165,16 @@
             vec4 fc = fragmentColor;
             fc.rgb *= diffuse + specular + ambient;
 
+            vec3 shadowCoord = 0.5 * fragmentNDC.xyz / fragmentNDC.w + 0.5;
+
+            vec4 rgbaDepth = texture2D(shadowMap, shadowCoord.xy);
+            float depth = unpackDepth(rgbaDepth);
+
+            float visibility = 1.0;
+            if (shadowCoord.z > depth + 0.0015) {
+                visibility = 0.5;
+            }
+            fc.rgb *= visibility;
             gl_FragColor = fc;
         }
     </script>

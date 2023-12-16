@@ -1,6 +1,7 @@
 var gl;
 var groundProgram;
 var teapotProgram;
+var framebuffer;
 var canvas;
 
 var groundVertices = flatten([
@@ -9,8 +10,6 @@ var groundVertices = flatten([
     vec3(2.0, -1.0, -5.0),
     vec3(-2.0, -1.0, -5.0)
 ]);
-
-// center: 0.0,, -1, -3.0
 
 const groundTextureCoords = flatten([
     vec2(0.0, 0.0),
@@ -23,30 +22,28 @@ const groundIndices = new Uint32Array([0, 1, 2, 3, 0, 2]);
 
 var dummyTextureCoords;
 
-const P = perspective(100, 1, 0.8, 50);
+const P = perspective(100, 1, 0.2, 50);
 const defaultV = lookAt(vec3(0.0, 0.5, -1.0), vec3(0.0, -1.0, -3.0), vec3(0.0, 1.0, 0.0));
 const Mp = mat4();
 Mp[0][0] = 1.0;
 Mp[1][1] = 1.0;
 Mp[2][2] = 1.0;
 Mp[3][3] = 0.0;
-Mp[3][1] = 1.0 / (- 1 - 2 - 0.0001); // -(y_light - y_ground) = (y_ground - y_light)
+Mp[3][1] = 1.0 / (-1 - 2 - 0.0001); // -(y_light - y_ground) = (y_ground - y_light)
 
 const teapotDefaultM = translate(0.0, -1.0, -3.0);
 
 const I = mat4();
 
-var render_from_lightsource = false;
 var orbiting = true;
 var bouncing = true;
+var render_from_lightsource = false;
 var orbit_theta = 0;
 var bounce_theta = 0;
 var prevTimeStamp = 0;
 
 
 function render(timeStamp) {
-    // clear screen (color set during setup)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     let diff = (timeStamp - prevTimeStamp) / 1000;
     if (orbiting & (diff != undefined)) {
@@ -58,22 +55,62 @@ function render(timeStamp) {
     }
 
     let lightPosition = vec4(2*Math.cos(orbit_theta), 2.0, -2.0 + 2*Math.sin(orbit_theta), 1.0);
+    let lightV = lookAt(vec3(lightPosition), vec3(0.0, -1.0, -3.0), vec3(0.0, 1.0, 0.0));
 
     var V;
     if (render_from_lightsource) {
-        V = lookAt(vec3(lightPosition), vec3(0.0, -1.0, -3.0), vec3(0.0, 1.0, 0.0));
+        V = lightV;
     } else {
         V = defaultV;
     }
 
-    let T_pl = translate(lightPosition[0], lightPosition[1], lightPosition[2]);
-    let T_neg_pl = translate(-lightPosition[0], -lightPosition[1], -lightPosition[2]);
+    let teapotM = mult(teapotDefaultM, translate(0.0, 1.5 * Math.abs(Math.sin(bounce_theta)), 0.0))
+
+
+    // draw into FBO
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.viewport(0, 0, 512, 512);
+
+    gl.useProgram(groundProgram);
+    // update buffers
+    initAttributeVariable(groundProgram.vertexBuffer);
+    initAttributeVariable(groundProgram.vertexTextureCoordBuffer);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, groundProgram.indexBuffer);
     
-    let teapotM = mult(teapotDefaultM, translate(0.0, 1.5 * Math.abs(Math.sin(bounce_theta)), 0.0));
+    gl.uniformMatrix4fv(groundProgram.V, false, flatten(lightV));
+    gl.uniformMatrix4fv(groundProgram.lightV, false, flatten(lightV));
     
-    let Ms = mult(T_pl, mult(Mp, mult(T_neg_pl, teapotM)));
+    gl.uniform1i(groundProgram.renderDepth, 1);
+    gl.uniform1i(groundProgram.shadowMap, 0);
+
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
+
+    // draw objects
+    gl.useProgram(teapotProgram);
+    //gl.depthFunc(gl.LESS);
+    initAttributeVariable(teapotProgram.vertexBuffer);
+    initAttributeVariable(teapotProgram.colorBuffer);
+    //initAttributeVariable(teapotProgram.normalBuffer);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, teapotProgram.indexBuffer);
     
+    gl.uniformMatrix4fv(teapotProgram.V, false, flatten(lightV));
+    gl.uniformMatrix4fv(teapotProgram.lightV, false, flatten(lightV));
+    gl.uniformMatrix4fv(teapotProgram.M, false, flatten(teapotM));
+    
+    gl.uniform4fv(teapotProgram.lightPosition, lightPosition);
+
+    gl.uniform1i(teapotProgram.shadowMap, 0);
+    gl.uniform1i(teapotProgram.renderDepth, 1);
+
+    gl.drawElements(gl.TRIANGLES, g_drawingInfo.nElements, gl.UNSIGNED_SHORT, 0);
+
+
     // draw ground
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    
     gl.useProgram(groundProgram);
     // update buffers
     initAttributeVariable(groundProgram.vertexBuffer);
@@ -81,37 +118,32 @@ function render(timeStamp) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, groundProgram.indexBuffer);
     
     gl.uniformMatrix4fv(groundProgram.V, false, flatten(V));
-    gl.uniformMatrix4fv(groundProgram.M, false, flatten(I));
+    gl.uniformMatrix4fv(groundProgram.lightV, false, flatten(lightV));
 
-    gl.uniform1f(groundProgram.visibility, 1.0);
-
+    gl.uniform1i(groundProgram.renderDepth, 0);
+    gl.uniform1i(groundProgram.shadowMap, 1);
+ 
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
 
-
-    // draw shadows
-    gl.depthFunc(gl.GREATER);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    gl.uniformMatrix4fv(groundProgram.M, false, flatten(Ms));
-    gl.uniform1f(groundProgram.visibility, 0.5);
-    
-    gl.drawElements(gl.TRIANGLES, g_drawingInfo.nElements, gl.UNSIGNED_INT, 6 * 4);
-
+    // draw to screen
     // draw objects
     gl.useProgram(teapotProgram);
-    gl.depthFunc(gl.LESS);
-    gl.disable(gl.BLEND);
+    //gl.depthFunc(gl.LESS);
     initAttributeVariable(teapotProgram.vertexBuffer);
     initAttributeVariable(teapotProgram.colorBuffer);
     //initAttributeVariable(teapotProgram.normalBuffer);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, teapotProgram.indexBuffer);
-
+    
     gl.uniformMatrix4fv(teapotProgram.V, false, flatten(V));
+    gl.uniformMatrix4fv(teapotProgram.lightV, false, flatten(lightV));
     gl.uniformMatrix4fv(teapotProgram.M, false, flatten(teapotM));
-
+    
     gl.uniform4fv(teapotProgram.lightPosition, lightPosition);
 
-    gl.drawElements(gl.TRIANGLES, g_drawingInfo.nElements, gl.UNSIGNED_INT, 0);
+    gl.uniform1i(teapotProgram.renderDepth, 0);
+    gl.uniform1i(teapotProgram.shadowMap, 1);
+
+    gl.drawElements(gl.TRIANGLES, g_drawingInfo.nElements, gl.UNSIGNED_SHORT, 0);
 
     prevTimeStamp = timeStamp;
 }
@@ -119,7 +151,7 @@ function render(timeStamp) {
 function animate(timeStamp) {
     if (!g_drawingInfo && g_objDoc && g_objDoc.isMTLComplete()) {
         // OBJ and all MTLs are available
-        g_drawingInfo = onReadComplete(gl, g_objDoc);
+        g_drawingInfo = onReadComplete(gl, teapotProgram, g_objDoc);
     }
     if (g_drawingInfo) {
         render(timeStamp);
@@ -162,41 +194,30 @@ function onReadOBJFile(fileString, fileName, scale, reverse) {
 var g_objDoc; // The information of OBJ file
 var g_drawingInfo; // The information for drawing 3D model
 
-function onReadComplete(gl, objDoc) {
+function onReadComplete(gl, program, objDoc) {
     // Acquire the vertex coordinates and colors from OBJ file
     var drawingInfo = objDoc.getDrawingInfo();
     drawingInfo.nVertices = drawingInfo.vertices.length;
     drawingInfo.nElements = drawingInfo.indices.length;
     
-    // Write data into the buffer object
-    gl.bindBuffer(gl.ARRAY_BUFFER, teapotProgram.vertexBuffer);
+    console.log(drawingInfo.colors)
+
+    // Write date into the buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, program.vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.vertices,gl.STATIC_DRAW);
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, groundProgram.vertexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([...groundVertices, ...drawingInfo.vertices]), gl.STATIC_DRAW);
-    
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, teapotProgram.normalBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, program.normalBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.normals, gl.STATIC_DRAW);
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, teapotProgram.colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, program.colorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.colors, gl.STATIC_DRAW);
     
     // Write the indices to the buffer object
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, teapotProgram.indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(drawingInfo.indices), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, program.indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, drawingInfo.indices, gl.STATIC_DRAW);
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, groundProgram.indexBuffer);
-    let new_indices = new Uint32Array(drawingInfo.indices);
-    for (let index = 0; index < drawingInfo.indices.length; index++) {
-        new_indices[index] += 4; 
-    }
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array([...groundIndices, ...new_indices]), gl.STATIC_DRAW);
+    dummyTextureCoords = new Float32Array(Array(drawingInfo.nElements * 2).fill(0.0))
 
-    dummyTextureCoords = Array(drawingInfo.nElements * 2).fill(0.0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, groundProgram.vertexTextureCoordBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([...groundTextureCoords, ...dummyTextureCoords]), gl.STATIC_DRAW);
-    
     return drawingInfo;
 }
 
@@ -235,13 +256,20 @@ function initGroundProgram() {
     gl.uniformMatrix4fv(groundProgram.P, false, flatten(P));
 
     groundProgram.V = gl.getUniformLocation(groundProgram, "V");
+    groundProgram.lightV = gl.getUniformLocation(groundProgram, "lightV");
 
     groundProgram.M = gl.getUniformLocation(groundProgram, "M");
-
+    gl.uniformMatrix4fv(groundProgram.M, false, flatten(I));
 
     groundProgram.visibility = gl.getUniformLocation(groundProgram, "visibility");
 
     groundProgram.textureMap = gl.getUniformLocation(groundProgram, "textureMap");
+    gl.uniform1i(groundProgram.textureMap, 0);
+    groundProgram.shadowMap = gl.getUniformLocation(groundProgram, "shadowMap");
+    gl.uniform1i(groundProgram.shadowMap, 1);
+
+    groundProgram.renderDepth = gl.getUniformLocation(groundProgram, "renderDepth");
+
 
     // textures
 
@@ -255,7 +283,6 @@ function initGroundProgram() {
         gl.bindTexture(gl.TEXTURE_2D, groundTexture);
 
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-    
         gl.generateMipmap(gl.TEXTURE_2D);
     
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
@@ -268,6 +295,7 @@ function initGroundProgram() {
     
     };
     image.src = '../xamp23.png';
+
 }
 
 
@@ -288,8 +316,11 @@ function initTeapotProgram() {
     gl.uniformMatrix4fv(teapotProgram.P, false, flatten(P));
 
     teapotProgram.V = gl.getUniformLocation(teapotProgram, "V");
+    teapotProgram.lightV = gl.getUniformLocation(teapotProgram, "lightV");
+
 
     teapotProgram.M = gl.getUniformLocation(teapotProgram, "M");
+    gl.uniformMatrix4fv(teapotProgram.M, false, flatten(I));
 
     teapotProgram.emissionL = gl.getUniformLocation(teapotProgram, "emissionL");
     gl.uniform1f(teapotProgram.emissionL, 1.0);
@@ -308,14 +339,47 @@ function initTeapotProgram() {
 
     teapotProgram.lightPosition = gl.getUniformLocation(teapotProgram, "lightPosition");
 
+    teapotProgram.renderDepth = gl.getUniformLocation(teapotProgram, "renderDepth");
+
+    teapotProgram.shadowMap = gl.getUniformLocation(teapotProgram, "shadowMap");
+
     // read object file
     readOBJFile("../teapot.obj", 0.25, false);  
+}
+
+function initFramebuffer() {
+    framebuffer = gl.createFramebuffer();
+    framebuffer.texture = gl.createTexture();
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, framebuffer.texture);
+    
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 512, 512, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+    depthBuffer = gl.createRenderbuffer();
+
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 512, 512);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, framebuffer.texture, 0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+    
+    // Check whether FBO is configured correctly
+    var e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (e !== gl.FRAMEBUFFER_COMPLETE) {
+        console.log('Framebuffer object is incomplete: ' + e.toString());
+        return error();
+    }
 }
 
 window.onload = function init() {
     // setup
     canvas = document.getElementById("canvas");
-    gl = WebGLUtils.setupWebGL(canvas, { "alpha": false});
+    gl = WebGLUtils.setupWebGL(canvas);
 
     if (!gl) {
         alert("WebGL isn't available!");
@@ -335,6 +399,7 @@ window.onload = function init() {
     // init both groundPrograms
     initGroundProgram();    
     initTeapotProgram();
+    initFramebuffer();
 
     var bouncingValueSpan = document.getElementById("bouncingValue");
     document.getElementById("toggleBounce").addEventListener("click", (event) => {

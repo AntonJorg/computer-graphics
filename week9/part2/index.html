@@ -21,7 +21,7 @@
 
         void main() {
             fragmentTextureCoord = vertexTextureCoord;
-            gl_Position = P * M * V * vertexPosition;
+            gl_Position = P * V * M * vertexPosition;
         }
         </script>
 
@@ -29,11 +29,15 @@
         precision mediump float;
 
         uniform sampler2D textureMap;
+        uniform float visibility;
 
         varying vec2 fragmentTextureCoord;
 
         void main() {
-            gl_FragColor = texture2D(textureMap, fragmentTextureCoord);
+            vec4 textureColor = texture2D(textureMap, fragmentTextureCoord);
+            textureColor *= visibility;
+            textureColor.rgb *= floor(visibility);
+            gl_FragColor = textureColor;
         }
     </script>
 
@@ -65,12 +69,12 @@
 
         void main() {
             vec4 eyeSpacePosition = V * M * vertexPosition;
-            vec4 eyeSpaceLightPosition = V * lightPosition;
-            vec4 eyeSpaceNormal = vertexNormal;
+            vec4 eyeSpaceLightPosition = V * lightPosition; // light pos is already in world space
+            vec3 eyeSpaceNormal = mat3(V) * vertexNormal.xyz;
             //eyeSpaceNormal.y *= -1.0;
 
-            w_i = eyeSpaceLightPosition.w == 0.0 ? normalize(-eyeSpaceLightPosition.xyz) : normalize(eyeSpacePosition.xyz - eyeSpaceLightPosition.xyz);
-            w_o = normalize(-eyeSpacePosition.xyz);
+            w_i = eyeSpaceLightPosition.w == 0.0 ? normalize(-eyeSpaceLightPosition.xyz) : normalize(eyeSpaceLightPosition.xyz - eyeSpacePosition.xyz);
+            w_o = -normalize(eyeSpacePosition.xyz);
             w_r = normalize(reflect(-w_i, eyeSpaceNormal.xyz));
 
             fragmentNormal = eyeSpaceNormal.xyz;

@@ -12,6 +12,9 @@
     - Explain MTex transformation
 - W7P3
     - Investigate wether it should look different than W7P2
+        - It should
+        - Fix
 - w8
     - Add on/off button for light orbiting
-
+- w9p2
+    - Fix flickering shadows
