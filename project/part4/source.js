@@ -23,7 +23,7 @@ const groundIndices = new Uint32Array([0, 1, 2, 3, 0, 2]);
 var dummyTextureCoords;
 
 const P = perspective(100, 1, 0.2, 50);
-const defaultV = lookAt(vec3(0.0, 0.0, -1.0), vec3(0.0, -1.0, -3.0), vec3(0.0, 1.0, 0.0));
+const defaultV = lookAt(vec3(-1.0, -3.0, -1.0), vec3(0.0, -1.0, -3.0), vec3(0.0, 1.0, 0.0));
 const Mp = mat4();
 Mp[0][0] = 1.0;
 Mp[1][1] = 1.0;
