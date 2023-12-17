@@ -69,8 +69,6 @@
     </script>
 
     <script id="teapot-vertex-shader" type="x-shader/x-vertex">
-        const float visibility = 1.0;
-
         uniform float emissionL;
         uniform float ambientK;
         uniform float diffuseK;
@@ -83,6 +81,9 @@
         uniform mat4 V;
         uniform mat4 lightV;
         uniform mat4 M;
+        uniform mat4 R;
+
+        uniform int reflection;
         
         attribute vec4 vertexPosition;
         attribute vec4 vertexColor;
@@ -98,10 +99,10 @@
 
         void main() {
 
-            vec4 eyeSpacePosition = V * M * vertexPosition;
-            vec4 eyeSpaceLightPosition = V * lightPosition;
-            vec3 eyeSpaceNormal = mat3(V) * vertexNormal.xyz;
-            
+            vec4 eyeSpacePosition = V * R * M * vertexPosition;
+            vec4 eyeSpaceLightPosition = V * R * lightPosition;
+            vec3 eyeSpaceNormal = mat3(V) * mat3(R) * vertexNormal.xyz;
+
             w_i = eyeSpaceLightPosition.w == 0.0 ? normalize(-eyeSpaceLightPosition.xyz) : normalize(eyeSpaceLightPosition.xyz - eyeSpacePosition.xyz);
             w_o = normalize(-eyeSpacePosition.xyz);
             w_r = normalize(reflect(-w_i, eyeSpaceNormal.xyz));
@@ -162,6 +163,7 @@
             vec3 specular = specularK * lightEmission * pow(max(dot(w_r_n, w_o_n), 0.0), shininess);
             vec3 ambient = ambientK * lightEmission;
             
+
             vec3 shadowCoord = 0.5 * fragmentNDC.xyz / fragmentNDC.w + 0.5;
 
             vec4 rgbaDepth = texture2D(shadowMap, shadowCoord.xy);
@@ -171,6 +173,7 @@
             if (shadowCoord.z > depth + 0.0015) {
                 visibility = 0.5;
             }
+
 
             vec4 fc = fragmentColor;
             fc.rgb *= diffuse * visibility + specular + ambient;
@@ -214,13 +217,16 @@
                 </tr>
                 <tr>
                     <td>
-                        Render from lightsource:
+                        Viewpoint:
                     </td>
                     <td>
-                        <span id="renderingValue">false</span>
                     </td>
                     <td>
-                        <button id="toggleRender">Toggle</button>            
+                        <select name="viewPointSelect" id="viewPointSelect">
+                            <option selected value="0">Static</option>
+                            <option value="1">Orbiting</option>
+                            <option value="2">From Light Source</option>
+                        </select>            
                     </td>
                 </tr>
             </tbody>
